@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interval Singing Trainer</title>
+    <script src="https://unpkg.com/tone@latest/build/Tone.js"></script>
+</head>
+<body>
+    <h1>Interval Singing Trainer</h1>
+
+    <h3>Выберите интервалы для тренировки:</h3>
+    <div id="intervals-select">
+        <label><input type="checkbox" value="1" checked> Малая секунда</label><br>
+        <label><input type="checkbox" value="2" checked> Большая секунда</label><br>
+        <label><input type="checkbox" value="3" checked> Малая терция</label><br>
+        <label><input type="checkbox" value="4" checked> Большая терция</label><br>
+        <label><input type="checkbox" value="5" checked> Кварта</label><br>
+        <label><input type="checkbox" value="6" checked> Тритон</label><br>
+        <label><input type="checkbox" value="7" checked> Квинта</label><br>
+        <label><input type="checkbox" value="8" checked> Малая секста</label><br>
+        <label><input type="checkbox" value="9" checked> Большая секста</label><br>
+        <label><input type="checkbox" value="10" checked> Малая септима</label><br>
+        <label><input type="checkbox" value="11" checked> Большая септима</label><br>
+        <label><input type="checkbox" value="12" checked> Октава</label><br>
+    </div>
+
+    <button onclick="generateInterval()">Сгенерировать интервал</button>
+    <button onclick="playBase()">Повторить базовый тон</button>
+    <button onclick="playAnswer()">Проверить (услышать целевую ноту)</button>
+
+    <p id="task"></p>
+
+    <script>
+        const sampler = new Tone.Sampler({
+            urls: {
+                "C4": "C4.mp3",
+                "D#4": "Ds4.mp3",
+                "F#4": "Fs4.mp3",
+                "A4": "A4.mp3"
+            },
+            baseUrl: "https://tonejs.github.io/audio/salamander/",
+            onload: () => console.log("Piano loaded")
+        }).toDestination();
+
+        const intervalList = [
+            {name: "малая секунда", semitones: 1},
+            {name: "большая секунда", semitones: 2},
+            {name: "малая терция", semitones: 3},
+            {name: "большая терция", semitones: 4},
+            {name: "кварта", semitones: 5},
+            {name: "тритон", semitones: 6},
+            {name: "квинта", semitones: 7},
+            {name: "малая секста", semitones: 8},
+            {name: "большая секста", semitones: 9},
+            {name: "малая септима", semitones: 10},
+            {name: "большая септима", semitones: 11},
+            {name: "октава", semitones: 12}
+        ];
+
+        let baseMidi = 60; // C4
+        let targetMidi = 60;
+
+        function generateInterval() {
+            const selected = Array.from(document.querySelectorAll('#intervals-select input:checked'))
+                                  .map(input => parseInt(input.value));
+            if (selected.length === 0) {
+                alert("Выберите хотя бы один интервал");
+                return;
+            }
+
+            baseMidi = Math.floor(48 + Math.random() * 24); // C3 - B4
+            const intervalSemitones = selected[Math.floor(Math.random() * selected.length)];
+            const interval = intervalList.find(i => i.semitones === intervalSemitones);
+
+            targetMidi = baseMidi + interval.semitones;
+
+            document.getElementById('task').innerText = `Исходная нота сыграна. Спойте ${interval.name} вверх от неё.`;
+            playMidi(baseMidi);
+        }
+
+        function playBase() {
+            playMidi(baseMidi);
+        }
+
+        function playAnswer() {
+            playMidi(targetMidi);
+        }
+
+        function playMidi(midi) {
+            const freq = Tone.Frequency(midi, "midi").toFrequency();
+            sampler.triggerAttackRelease(freq, "1n");
+        }
+    </script>
+</body>
+</html>
