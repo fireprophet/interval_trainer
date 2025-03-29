@@ -25,9 +25,23 @@
         <label><input type="checkbox" value="12" checked> Октава</label><br>
     </div>
 
+    <h3>Выберите направление:</h3>
+    <div id="direction-select">
+        <label><input type="checkbox" value="up" checked> Вверх</label><br>
+        <label><input type="checkbox" value="down" checked> Вниз</label><br>
+    </div>
+
+    <h3>Выберите диапазон базовой ноты:</h3>
+    <div id="range-select">
+        <label><input type="radio" name="range" value="low" checked> Низкий (C2–E3)</label><br>
+        <label><input type="radio" name="range" value="mid"> Средний (C3–C4)</label><br>
+        <label><input type="radio" name="range" value="high"> Высокий (G3–G4)</label><br>
+    </div>
+
     <button onclick="generateInterval()">Сгенерировать интервал</button>
     <button onclick="playBase()">Повторить базовый тон</button>
     <button onclick="playAnswer()">Проверить (услышать целевую ноту)</button>
+    <button onclick="playHarmonic()">Послушать интервал одновременно</button>
 
     <p id="task"></p>
 
@@ -40,42 +54,66 @@
                 "A4": "A4.mp3"
             },
             baseUrl: "https://tonejs.github.io/audio/salamander/",
-            onload: () => console.log("Piano loaded")
+            onload: () => console.log("Пианино загружено")
         }).toDestination();
 
         const intervalList = [
-            {name: "малая секунда", semitones: 1},
-            {name: "большая секунда", semitones: 2},
-            {name: "малая терция", semitones: 3},
-            {name: "большая терция", semitones: 4},
-            {name: "кварта", semitones: 5},
-            {name: "тритон", semitones: 6},
-            {name: "квинта", semitones: 7},
-            {name: "малая секста", semitones: 8},
-            {name: "большая секста", semitones: 9},
-            {name: "малая септима", semitones: 10},
-            {name: "большая септима", semitones: 11},
-            {name: "октава", semitones: 12}
+            { name: "малая секунда", semitones: 1 },
+            { name: "большая секунда", semitones: 2 },
+            { name: "малая терция", semitones: 3 },
+            { name: "большая терция", semitones: 4 },
+            { name: "кварта", semitones: 5 },
+            { name: "тритон", semitones: 6 },
+            { name: "квинта", semitones: 7 },
+            { name: "малая секста", semitones: 8 },
+            { name: "большая секста", semitones: 9 },
+            { name: "малая септима", semitones: 10 },
+            { name: "большая септима", semitones: 11 },
+            { name: "октава", semitones: 12 }
         ];
 
-        let baseMidi = 60; // C4
+        let baseMidi = 60;
         let targetMidi = 60;
+        let direction = 'up';
+
+        function getRange() {
+            const selected = document.querySelector('input[name="range"]:checked').value;
+            if (selected === 'low') return [36, 52];
+            if (selected === 'mid') return [48, 60];
+            if (selected === 'high') return [55, 67];
+        }
 
         function generateInterval() {
-            const selected = Array.from(document.querySelectorAll('#intervals-select input:checked'))
-                                  .map(input => parseInt(input.value));
-            if (selected.length === 0) {
+            const selectedIntervals = Array.from(document.querySelectorAll('#intervals-select input:checked'))
+                .map(input => parseInt(input.value));
+
+            const selectedDirections = Array.from(document.querySelectorAll('#direction-select input:checked'))
+                .map(input => input.value);
+
+            if (selectedIntervals.length === 0) {
                 alert("Выберите хотя бы один интервал");
                 return;
             }
+            if (selectedDirections.length === 0) {
+                alert("Выберите хотя бы одно направление");
+                return;
+            }
 
-            baseMidi = Math.floor(48 + Math.random() * 24); // C3 - B4
-            const intervalSemitones = selected[Math.floor(Math.random() * selected.length)];
+            const [min, max] = getRange();
+            baseMidi = Math.floor(min + Math.random() * (max - min + 1));
+
+            const intervalSemitones = selectedIntervals[Math.floor(Math.random() * selectedIntervals.length)];
             const interval = intervalList.find(i => i.semitones === intervalSemitones);
 
-            targetMidi = baseMidi + interval.semitones;
+            direction = selectedDirections[Math.floor(Math.random() * selectedDirections.length)];
 
-            document.getElementById('task').innerText = `Исходная нота сыграна. Спойте ${interval.name} вверх от неё.`;
+            if (direction === 'up') {
+                targetMidi = baseMidi + interval.semitones;
+            } else {
+                targetMidi = baseMidi - interval.semitones;
+            }
+
+            document.getElementById('task').innerText = `Исходная нота сыграна. Спойте ${interval.name} ${direction === 'up' ? 'вверх' : 'вниз'} от неё.`;
             playMidi(baseMidi);
         }
 
@@ -85,6 +123,12 @@
 
         function playAnswer() {
             playMidi(targetMidi);
+        }
+
+        function playHarmonic() {
+            const now = Tone.now();
+            sampler.triggerAttackRelease(Tone.Frequency(baseMidi, "midi").toFrequency(), "2n", now);
+            sampler.triggerAttackRelease(Tone.Frequency(targetMidi, "midi").toFrequency(), "2n", now);
         }
 
         function playMidi(midi) {
